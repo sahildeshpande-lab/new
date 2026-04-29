@@ -1,34 +1,17 @@
 document.getElementById('queryForm').addEventListener('submit', async function(e) {
     e.preventDefault();
 
-    const dateFrom = document.getElementById('dateFrom').value;
-    const dateTo = document.getElementById('dateTo').value;
     const query = document.getElementById('query').value;
-
-    // Validate inputs
-    if (!dateFrom || !dateTo) {
-        showError('Please select both Date From and Date To');
-        return;
-    }
 
     if (!query.trim()) {
         showError('Please enter a query');
         return;
     }
 
-    // Validate date range
-    if (new Date(dateFrom) > new Date(dateTo)) {
-        showError('Date From must be before Date To');
-        return;
-    }
-
-    // Prepare the request body
+    // Prepare the request body (no date filters required)
     const requestBody = {
         question: query,
-        filters: {
-            date_from: dateFrom,
-            date_to: dateTo
-        },
+        filters: {}, // Empty filters object since dates are removed
         format: "json",
         limit: 100
     };
@@ -58,36 +41,48 @@ document.getElementById('queryForm').addEventListener('submit', async function(e
             console.warn('Warnings:', data.warnings);
         }
 
-        // Process the data and create chart
+        // Process the data and create table
         if (data.rows && data.rows.length > 0) {
-            createChart(data);
+            window.currentReportData = data;
+            document.getElementById('export-controls').style.display = 'flex';
+            renderTable(data);
         } else {
+            window.currentReportData = null;
+            document.getElementById('export-controls').style.display = 'none';
             showNoData(data.generated_report || 'No data found for the selected date range and query.');
         }
 
     } catch (error) {
         console.error('Error:', error);
-        showError(`Error: ${error.message}\n\nPlease ensure:\n1. Backend is running on port 8080\n2. Dates are selected and valid\n3. Query is entered`);
+        showError(`Error: ${error.message}\n\nPlease ensure Backend is running on port 8080 and Query is entered.`);
     }
 });
 
 function showError(message) {
+    document.getElementById('export-controls').style.display = 'none';
     const chartContainer = document.querySelector('.chart-container');
     chartContainer.innerHTML = `<div class="error-message" style="width: 100%; word-wrap: break-word;">${message}</div>`;
     alert(message);
 }
 
 function showNoData(message) {
-    const chartContainer = document.querySelector('.chart-container');
-    chartContainer.innerHTML = `<div class="no-data">${message}</div>`;
+    const tableContainer = document.getElementById('table-container');
+    const queryContainer = document.getElementById('query-container');
+    
+    queryContainer.style.display = 'none';
+    tableContainer.innerHTML = `<div class="no-data">${message}</div>`;
 }
 
-function createChart(data) {
-    const ctx = document.getElementById('chart').getContext('2d');
+function renderTable(data) {
+    const tableContainer = document.getElementById('table-container');
+    const queryContainer = document.getElementById('query-container');
 
-    // Clear previous chart if exists
-    if (window.myChart) {
-        window.myChart.destroy();
+    // Display SQL Query Preview
+    if (data.sql_preview) {
+        queryContainer.textContent = `Generated SQL:\n${data.sql_preview}`;
+        queryContainer.style.display = 'block';
+    } else {
+        queryContainer.style.display = 'none';
     }
 
     // Handle empty data
@@ -96,97 +91,81 @@ function createChart(data) {
         return;
     }
 
-    // Get first two columns for chart
-    const labels = data.rows.map(row => {
-        const firstCol = data.columns[0];
-        return row[firstCol];
+    // Build Table HTML
+    let tableHTML = '<table><thead><tr>';
+    
+    // Add Headers
+    data.columns.forEach(col => {
+        tableHTML += `<th>${col.replace(/_/g, ' ')}</th>`;
     });
     
-    const values = data.rows.map(row => {
-        const secondCol = data.columns[1];
-        return parseFloat(row[secondCol]) || 0;
+    tableHTML += '</tr></thead><tbody>';
+
+    // Add Rows
+    data.rows.forEach(row => {
+        tableHTML += '<tr>';
+        data.columns.forEach(col => {
+            const val = row[col];
+            tableHTML += `<td>${val !== null && val !== undefined ? val : '-'}</td>`;
+        });
+        tableHTML += '</tr>';
     });
 
-    window.myChart = new Chart(ctx, {
-        type: 'bar',
-        data: {
-            labels: labels,
-            datasets: [{
-                label: data.report_name || 'Report Data',
-                data: values,
-                backgroundColor: [
-                    'rgba(102, 126, 234, 0.8)',
-                    'rgba(118, 75, 162, 0.8)',
-                    'rgba(159, 122, 234, 0.8)',
-                    'rgba(186, 145, 242, 0.8)',
-                    'rgba(213, 167, 250, 0.8)',
-                ],
-                borderColor: [
-                    'rgba(102, 126, 234, 1)',
-                    'rgba(118, 75, 162, 1)',
-                    'rgba(159, 122, 234, 1)',
-                    'rgba(186, 145, 242, 1)',
-                    'rgba(213, 167, 250, 1)',
-                ],
-                borderWidth: 2,
-                borderRadius: 6,
-                tension: 0.3
-            }]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: true,
-            plugins: {
-                legend: {
-                    display: true,
-                    labels: {
-                        font: {
-                            size: 14,
-                            weight: 'bold'
-                        },
-                        padding: 15,
-                        usePointStyle: true,
-                        color: '#2d3748'
-                    }
-                },
-                title: {
-                    display: true,
-                    text: data.report_name || 'Report Chart',
-                    font: {
-                        size: 16,
-                        weight: 'bold'
-                    },
-                    padding: 20,
-                    color: '#1a202c'
-                }
-            },
-            scales: {
-                y: {
-                    beginAtZero: true,
-                    ticks: {
-                        font: {
-                            size: 12
-                        },
-                        color: '#4a5568'
-                    },
-                    grid: {
-                        color: 'rgba(0, 0, 0, 0.05)',
-                        drawBorder: false
-                    }
-                },
-                x: {
-                    ticks: {
-                        font: {
-                            size: 12
-                        },
-                        color: '#4a5568'
-                    },
-                    grid: {
-                        display: false,
-                        drawBorder: false
-                    }
-                }
-            }
-        }
-    });
+    tableHTML += '</tbody></table>';
+    
+    tableContainer.innerHTML = tableHTML;
 }
+
+// Export to Excel
+document.getElementById('exportExcelBtn').addEventListener('click', async function() {
+    const data = window.currentReportData;
+    if (!data) return;
+
+    const workbook = new ExcelJS.Workbook();
+    const sheet = workbook.addWorksheet('Report Data');
+
+    // Add Headers
+    sheet.columns = data.columns.map(col => ({ header: col, key: col, width: 20 }));
+
+    // Add Rows
+    data.rows.forEach(row => {
+        sheet.addRow(row);
+    });
+
+    // Style headers
+    sheet.getRow(1).font = { bold: true };
+    
+    // Generate file
+    const buffer = await workbook.xlsx.writeBuffer();
+    const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${data.report_name || 'report'}.xlsx`;
+    a.click();
+    window.URL.revokeObjectURL(url);
+});
+
+// Export to PDF
+document.getElementById('exportPdfBtn').addEventListener('click', function() {
+    const data = window.currentReportData;
+    if (!data) return;
+
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF('landscape');
+
+    doc.text(data.report_name || 'Report Data', 14, 15);
+
+    const tableData = data.rows.map(row => data.columns.map(col => row[col]));
+
+    doc.autoTable({
+        head: [data.columns],
+        body: tableData,
+        startY: 20,
+        theme: 'grid',
+        styles: { fontSize: 8 },
+        headStyles: { fillColor: [102, 126, 234] }
+    });
+
+    doc.save(`${data.report_name || 'report'}.pdf`);
+});

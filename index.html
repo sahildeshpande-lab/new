@@ -7,40 +7,48 @@
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-    <div class="container">
-        <div class="left-panel">
-            <div class="panel-content">
-                <h2>Query Input</h2>
-                <form id="queryForm">
-                    <div class="form-group">
-                        <label for="dateFrom">Date From:</label>
-                        <input type="date" id="dateFrom" name="dateFrom" required>
-                    </div>
-
-                    <div class="form-group">
-                        <label for="dateTo">Date To:</label>
-                        <input type="date" id="dateTo" name="dateTo" required>
-                    </div>
-
-                    <div class="form-group">
-                        <label for="query">Query:</label>
-                        <textarea id="query" name="query" placeholder="Enter your natural language query here..." required></textarea>
-                    </div>
-
-                    <button type="submit" class="submit-btn">Generate Report</button>
-                </form>
+    <div class="dashboard-wrapper">
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <img src="logo.png" alt="Devita Logo" class="sidebar-logo">
             </div>
-        </div>
-        <div class="right-panel">
-            <div class="panel-content">
-                <h2>Report Chart</h2>
-                <div class="chart-container">
-                    <canvas id="chart"></canvas>
+            <nav class="sidebar-nav">
+                <a href="#" class="nav-item">Dashboard</a>
+                <a href="#" class="nav-item">Project Management</a>
+                <a href="#" class="nav-item">Timesheet Management</a>
+                <a href="#" class="nav-item active">Report Management</a>
+                <a href="#" class="nav-item">Employee Summary</a>
+                <a href="#" class="nav-item">Settings</a>
+            </nav>
+        </aside>
+
+        <main class="main-content">
+            <header class="topbar">
+                <form id="queryForm" class="search-form">
+                    <input type="text" id="query" name="query" placeholder="Ask anything... (e.g. 'Show attendances for May 2025')" required>
+                    <button type="submit" class="submit-btn search-btn">Generate</button>
+                </form>
+                
+                <div id="export-controls" style="display: none;">
+                    <button id="exportExcelBtn" class="export-btn excel-btn">Excel</button>
+                    <button id="exportPdfBtn" class="export-btn pdf-btn">PDF</button>
+                </div>
+            </header>
+
+            <div class="content-body">
+                <div id="query-container" class="query-box" style="display: none;"></div>
+                <div class="results-container">
+                    <div id="table-container" class="table-responsive">
+                        <div class="no-data">Generate a report to see data here.</div>
+                    </div>
                 </div>
             </div>
-        </div>
+        </main>
     </div>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.3.0/exceljs.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
     <script src="script.js"></script>
 </body>
 </html>
