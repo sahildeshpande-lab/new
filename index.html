@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Reporting Dashboard</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <div class="left-panel">
+            <div class="panel-content">
+                <h2>Query Input</h2>
+                <form id="queryForm">
+                    <div class="form-group">
+                        <label for="dateFrom">Date From:</label>
+                        <input type="date" id="dateFrom" name="dateFrom" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="dateTo">Date To:</label>
+                        <input type="date" id="dateTo" name="dateTo" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="query">Query:</label>
+                        <textarea id="query" name="query" placeholder="Enter your natural language query here..." required></textarea>
+                    </div>
+
+                    <button type="submit" class="submit-btn">Generate Report</button>
+                </form>
+            </div>
+        </div>
+        <div class="right-panel">
+            <div class="panel-content">
+                <h2>Report Chart</h2>
+                <div class="chart-container">
+                    <canvas id="chart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="script.js"></script>
+</body>
+</html>
+</html>

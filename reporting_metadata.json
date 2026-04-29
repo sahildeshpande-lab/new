@@ -1,0 +1,626 @@
+{
+  "version": "1.0.0",
+  "database": {
+    "name": "devita_project_management",
+    "engine": "mysql",
+    "default_timezone": "Asia/Kolkata",
+    "description": "Project management, attendance, timesheet, and reporting database for Devita.",
+    "naming_notes": [
+      "The source documentation uses attendances for attendance data.",
+      "The source documentation uses product_task for task assignment data.",
+      "The metadata is a curated V1 seed and should be validated against the live MySQL information_schema before production use."
+    ],
+    "access_policy": {
+      "mode": "read_only",
+      "allowed_statement_types": ["SELECT"],
+      "unsupported_behavior": "Return an unsupported-report response when a user asks for reports outside the V1 report catalog."
+    }
+  },
+  "tables": {
+    "users": {
+      "description": "Employee and user master data.",
+      "primary_key": "id",
+      "business_meaning": "Provides employee identity and status for attendance and timesheet reporting.",
+      "columns": {
+        "id": {
+          "type": "bigint",
+          "description": "Unique user ID.",
+          "semantic_role": "primary_key"
+        },
+        "name": {
+          "type": "string",
+          "description": "Employee display name.",
+          "semantic_role": "employee_name"
+        },
+        "email": {
+          "type": "string",
+          "description": "Employee email address.",
+          "semantic_role": "employee_contact"
+        },
+        "employee_id": {
+          "type": "string",
+          "description": "Employee code or external employee identifier, when available.",
+          "semantic_role": "employee_code"
+        },
+        "status": {
+          "type": "string",
+          "description": "User account status such as active, inactive, disabled, or suspended.",
+          "semantic_role": "user_status"
+        }
+      }
+    },
+    "attendances": {
+      "description": "Daily attendance records with check-in and check-out times.",
+      "primary_key": "id",
+      "business_meaning": "Tracks daily attendance status and working hours for employees.",
+      "columns": {
+        "id": {
+          "type": "bigint",
+          "description": "Unique attendance record ID.",
+          "semantic_role": "primary_key"
+        },
+        "user_id": {
+          "type": "bigint",
+          "description": "Employee linked to users.id.",
+          "semantic_role": "foreign_key"
+        },
+        "date": {
+          "type": "date",
+          "description": "Attendance date.",
+          "semantic_role": "report_date"
+        },
+        "status": {
+          "type": "string",
+          "description": "Attendance status such as Present, Absent, Late, Leave, P, A, WO, H, or L depending on the live database values.",
+          "semantic_role": "attendance_status"
+        },
+        "check_in": {
+          "type": "time",
+          "description": "Employee check-in time.",
+          "semantic_role": "start_time"
+        },
+        "check_out": {
+          "type": "time",
+          "description": "Employee check-out time.",
+          "semantic_role": "end_time"
+        },
+        "employee_details": {
+          "type": "text",
+          "description": "Optional imported employee details from attendance source data.",
+          "semantic_role": "attendance_notes"
+        },
+        "day": {
+          "type": "string",
+          "description": "Day of the week for the attendance record (e.g., Monday, Tuesday).",
+          "semantic_role": "attendance_day"
+        },
+        "total_hours": {
+          "type": "string",
+          "description": "Total working hours for the attendance record.",
+          "semantic_role": "total_hours"
+        },
+        "department": {
+          "type": "string",
+          "description": "Department of the employee.",
+          "semantic_role": "department"
+        },
+        "designation": {
+          "type": "string",
+          "description": "Job designation or job title of the employee.",
+          "semantic_role": "designation"
+        },
+        "employee_id": {
+          "type": "string",
+          "description": "Employee code or external employee identifier.",
+          "semantic_role": "employee_code"
+        },
+        "name": {
+          "type": "string",
+          "description": "Employee name from attendance record.",
+          "semantic_role": "employee_name"
+        },
+        "for_month": {
+          "type": "string",
+          "description": "Month for which the attendance is recorded (e.g., 2024-01 or January 2024).",
+          "semantic_role": "report_month"
+        }
+      },
+      "relationships": [
+        {
+          "column": "user_id",
+          "references": "users.id",
+          "relationship_type": "many_to_one",
+          "description": "Many attendance records belong to one user."
+        }
+      ]
+    },
+    "timelog_records": {
+      "description": "Employee time entries against project, product, and task.",
+      "primary_key": "id",
+      "business_meaning": "Stores detailed work logs used for timesheet reporting and productivity calculations.",
+      "columns": {
+        "id": {
+          "type": "bigint",
+          "description": "Unique timelog record ID.",
+          "semantic_role": "primary_key"
+        },
+        "user_id": {
+          "type": "bigint",
+          "description": "Employee who logged time.",
+          "semantic_role": "foreign_key"
+        },
+        "project_id": {
+          "type": "bigint",
+          "description": "Project linked to projects.id.",
+          "semantic_role": "foreign_key"
+        },
+        "product_id": {
+          "type": "bigint",
+          "description": "Product linked to products.id when present.",
+          "semantic_role": "foreign_key"
+        },
+        "task_id": {
+          "type": "bigint",
+          "description": "Task linked to product_task.id.",
+          "semantic_role": "foreign_key"
+        },
+        "date": {
+          "type": "date",
+          "description": "Work date.",
+          "semantic_role": "report_date"
+        },
+        "time_spent": {
+          "type": "time",
+          "description": "Time spent on the logged work. Treat as a duration-like field and convert carefully in SQL.",
+          "semantic_role": "duration"
+        },
+        "description": {
+          "type": "text",
+          "description": "Narrative description of the work performed.",
+          "semantic_role": "work_notes"
+        },
+        "work_type": {
+          "type": "string",
+          "description": "Type or category of work.",
+          "semantic_role": "work_category"
+        },
+        "role_type": {
+          "type": "string",
+          "description": "Role performed for the time entry.",
+          "semantic_role": "work_role"
+        }
+      },
+      "relationships": [
+        {
+          "column": "user_id",
+          "references": "users.id",
+          "relationship_type": "many_to_one",
+          "description": "Many timelog records belong to one user."
+        },
+        {
+          "column": "project_id",
+          "references": "projects.id",
+          "relationship_type": "many_to_one",
+          "description": "Many timelog records belong to one project."
+        },
+        {
+          "column": "task_id",
+          "references": "product_task.id",
+          "relationship_type": "many_to_one",
+          "description": "Many timelog records may reference one project task."
+        }
+      ]
+    },
+    "projects": {
+      "description": "Project master data.",
+      "primary_key": "id",
+      "business_meaning": "Provides project identity, client, status, team leader assignments, and project type for report filtering.",
+      "columns": {
+        "id": {
+          "type": "bigint",
+          "description": "Unique project ID.",
+          "semantic_role": "primary_key"
+        },
+        "project_name": {
+          "type": "string",
+          "description": "Project name.",
+          "semantic_role": "project_name"
+        },
+        "client": {
+          "type": "string",
+          "description": "Client name.",
+          "semantic_role": "client_name"
+        },
+        "project_status": {
+          "type": "string",
+          "description": "Current project status.",
+          "semantic_role": "project_status"
+        },
+        "team_leader": {
+          "type": "json",
+          "description": "Assigned team leader IDs or names, depending on the live database format.",
+          "semantic_role": "team_assignment"
+        },
+        "primary_team_leader": {
+          "type": "string",
+          "description": "Primary team leader value when available.",
+          "semantic_role": "team_assignment"
+        },
+        "project_mfg_type": {
+          "type": "string",
+          "description": "Project manufacturing type such as CAD_CAM, BIM, or E-Drawing.",
+          "semantic_role": "project_type"
+        },
+        "total_budgeted_man_hrs": {
+          "type": "integer",
+          "description": "Budgeted man hours for the project.",
+          "semantic_role": "planned_hours"
+        },
+        "actual_man_hrs_utilized": {
+          "type": "integer",
+          "description": "Actual man hours utilized for the project.",
+          "semantic_role": "actual_hours"
+        }
+      }
+    },
+    "product_task": {
+      "description": "Tasks assigned under projects and products.",
+      "primary_key": "id",
+      "business_meaning": "Connects project work to assigned members, reviewers, and deletion status.",
+      "columns": {
+        "id": {
+          "type": "bigint",
+          "description": "Unique task ID.",
+          "semantic_role": "primary_key"
+        },
+        "project_id": {
+          "type": "bigint",
+          "description": "Project linked to projects.id.",
+          "semantic_role": "foreign_key"
+        },
+        "product_id": {
+          "type": "bigint",
+          "description": "Product linked to products.id when present.",
+          "semantic_role": "foreign_key"
+        },
+        "assign_member": {
+          "type": "bigint",
+          "description": "Assigned employee linked to users.id.",
+          "semantic_role": "assignee"
+        },
+        "reviewer": {
+          "type": "bigint",
+          "description": "Reviewer employee linked to users.id.",
+          "semantic_role": "reviewer"
+        },
+        "is_deleted": {
+          "type": "boolean",
+          "description": "Soft delete flag. V1 reports should normally exclude rows where this is true.",
+          "semantic_role": "soft_delete"
+        }
+      },
+      "relationships": [
+        {
+          "column": "project_id",
+          "references": "projects.id",
+          "relationship_type": "many_to_one",
+          "description": "Many tasks belong to one project."
+        },
+        {
+          "column": "assign_member",
+          "references": "users.id",
+          "relationship_type": "many_to_one",
+          "description": "Many tasks may be assigned to one user."
+        },
+        {
+          "column": "reviewer",
+          "references": "users.id",
+          "relationship_type": "many_to_one",
+          "description": "Many tasks may be reviewed by one user."
+        }
+      ]
+    },
+    "task_hours": {
+      "description": "Hours logged against tasks for productivity calculations.",
+      "primary_key": "id",
+      "business_meaning": "Provides task-level hour totals for HR productivity summaries.",
+      "columns": {
+        "id": {
+          "type": "bigint",
+          "description": "Unique task hour record ID.",
+          "semantic_role": "primary_key"
+        },
+        "task_id": {
+          "type": "bigint",
+          "description": "Task linked to product_task.id.",
+          "semantic_role": "foreign_key"
+        },
+        "user_id": {
+          "type": "bigint",
+          "description": "Employee linked to users.id.",
+          "semantic_role": "foreign_key"
+        },
+        "date": {
+          "type": "date",
+          "description": "Work date.",
+          "semantic_role": "report_date"
+        },
+        "hours": {
+          "type": "integer",
+          "description": "Hours worked on the task.",
+          "semantic_role": "duration_hours"
+        }
+      },
+      "relationships": [
+        {
+          "column": "task_id",
+          "references": "product_task.id",
+          "relationship_type": "many_to_one",
+          "description": "Many task hour records can belong to one task."
+        },
+        {
+          "column": "user_id",
+          "references": "users.id",
+          "relationship_type": "many_to_one",
+          "description": "Many task hour records can belong to one user."
+        }
+      ]
+    }
+  },
+  "reports": {
+    "attendance_report": {
+      "name": "Attendance Report",
+      "description": "Shows employee attendance, check-in/check-out, status, and worked hours.",
+      "natural_language_aliases": [
+        "attendance report",
+        "daily attendance",
+        "employee attendance",
+        "present absent report",
+        "check in check out report"
+      ],
+      "required_tables": ["attendances", "users"],
+      "allowed_filters": ["date_from", "date_to", "user_id", "employee_name", "status"],
+      "default_sort": [
+        { "column": "attendances.date", "direction": "desc" },
+        { "column": "users.name", "direction": "asc" }
+      ],
+      "business_logic": [
+        "worked_hours = difference between attendances.check_out and attendances.check_in when both values exist.",
+        "attendance status comes from attendances.status.",
+        "Join attendances.user_id to users.id to display employee identity."
+      ],
+      "sql_intent": {
+        "base_table": "attendances",
+        "joins": [
+          {
+            "type": "left",
+            "table": "users",
+            "on": "attendances.user_id = users.id"
+          }
+        ],
+        "select_columns": [
+          "attendances.date",
+          "users.id",
+          "users.name",
+          "users.employee_id",
+          "attendances.status",
+          "attendances.check_in",
+          "attendances.check_out"
+        ],
+        "computed_columns": [
+          {
+            "name": "worked_hours",
+            "expression": "TIMEDIFF(attendances.check_out, attendances.check_in)",
+            "description": "Duration between check-out and check-in."
+          }
+        ]
+      }
+    },
+    "timesheet_report": {
+      "name": "Timesheet Report",
+      "description": "Shows employee time entries by project, product, task, date, work type, and role type.",
+      "natural_language_aliases": [
+        "timesheet report",
+        "time sheet report",
+        "employee timesheet",
+        "time logs",
+        "work log report"
+      ],
+      "required_tables": ["timelog_records", "users", "projects", "product_task"],
+      "allowed_filters": ["date_from", "date_to", "user_id", "project_id", "client", "work_type", "role_type"],
+      "default_sort": [
+        { "column": "timelog_records.date", "direction": "desc" },
+        { "column": "users.name", "direction": "asc" }
+      ],
+      "business_logic": [
+        "total_time = sum of timelog_records.time_spent after converting duration values safely.",
+        "Detail view returns one row per timelog entry.",
+        "Summary view groups by employee, project, date, work_type, and role_type."
+      ],
+      "sql_intent": {
+        "base_table": "timelog_records",
+        "joins": [
+          {
+            "type": "left",
+            "table": "users",
+            "on": "timelog_records.user_id = users.id"
+          },
+          {
+            "type": "left",
+            "table": "projects",
+            "on": "timelog_records.project_id = projects.id"
+          },
+          {
+            "type": "left",
+            "table": "product_task",
+            "on": "timelog_records.task_id = product_task.id"
+          }
+        ],
+        "select_columns": [
+          "timelog_records.date",
+          "users.id",
+          "users.name",
+          "projects.id",
+          "projects.project_name",
+          "projects.client",
+          "timelog_records.product_id",
+          "timelog_records.task_id",
+          "timelog_records.time_spent",
+          "timelog_records.work_type",
+          "timelog_records.role_type",
+          "timelog_records.description"
+        ],
+        "computed_columns": [
+          {
+            "name": "total_time_seconds",
+            "expression": "SUM(TIME_TO_SEC(timelog_records.time_spent))",
+            "description": "Total logged time in seconds for summary mode."
+          }
+        ]
+      }
+    },
+    "team_lead_timesheet_report": {
+      "name": "Team Lead Timesheet Report",
+      "description": "Shows time and task information for projects handled by team leaders.",
+      "natural_language_aliases": [
+        "team lead timesheet report",
+        "team leader timesheet",
+        "tl timesheet",
+        "team lead work log",
+        "team leader project time"
+      ],
+      "required_tables": ["projects", "product_task", "timelog_records", "users"],
+      "allowed_filters": ["date_from", "date_to", "team_leader_id", "project_id", "client", "project_mfg_type"],
+      "default_sort": [
+        { "column": "projects.project_name", "direction": "asc" },
+        { "column": "timelog_records.date", "direction": "desc" }
+      ],
+      "business_logic": [
+        "Team leader projects are identified from projects.team_leader or projects.primary_team_leader, depending on live database values.",
+        "Task counts should exclude product_task rows where is_deleted is true.",
+        "Team efficiency can be calculated from projects.actual_man_hrs_utilized and projects.total_budgeted_man_hrs when both values are available."
+      ],
+      "sql_intent": {
+        "base_table": "projects",
+        "joins": [
+          {
+            "type": "left",
+            "table": "product_task",
+            "on": "projects.id = product_task.project_id"
+          },
+          {
+            "type": "left",
+            "table": "timelog_records",
+            "on": "projects.id = timelog_records.project_id"
+          },
+          {
+            "type": "left",
+            "table": "users",
+            "on": "timelog_records.user_id = users.id"
+          }
+        ],
+        "select_columns": [
+          "projects.id",
+          "projects.project_name",
+          "projects.client",
+          "projects.project_status",
+          "projects.team_leader",
+          "projects.primary_team_leader",
+          "projects.project_mfg_type",
+          "projects.total_budgeted_man_hrs",
+          "projects.actual_man_hrs_utilized",
+          "product_task.id",
+          "product_task.assign_member",
+          "product_task.reviewer",
+          "timelog_records.date",
+          "timelog_records.time_spent",
+          "users.id",
+          "users.name"
+        ],
+        "computed_columns": [
+          {
+            "name": "team_efficiency_percent",
+            "expression": "CASE WHEN projects.total_budgeted_man_hrs > 0 THEN (projects.actual_man_hrs_utilized / projects.total_budgeted_man_hrs) * 100 ELSE NULL END",
+            "description": "Actual hours divided by planned hours."
+          }
+        ]
+      }
+    },
+    "hr_timesheet_report": {
+      "name": "HR Timesheet Report",
+      "description": "HR-focused report combining attendance and logged work hours.",
+      "natural_language_aliases": [
+        "hr timesheet report",
+        "hr time report",
+        "employee productivity report",
+        "attendance and timesheet report",
+        "hr attendance report"
+      ],
+      "required_tables": ["attendances", "timelog_records", "task_hours", "users"],
+      "allowed_filters": ["date_from", "date_to", "user_id", "employee_name", "status"],
+      "default_sort": [
+        { "column": "users.name", "direction": "asc" }
+      ],
+      "business_logic": [
+        "attendance_rate = present days divided by total tracked attendance days.",
+        "logged_time = sum of timelog_records.time_spent for the same employee and period.",
+        "task_hours_total = sum of task_hours.hours for the same employee and period when task hour data is available.",
+        "Productivity can be derived from completed or logged task work divided by hours worked when completion data is available."
+      ],
+      "sql_intent": {
+        "base_table": "users",
+        "joins": [
+          {
+            "type": "left",
+            "table": "attendances",
+            "on": "users.id = attendances.user_id"
+          },
+          {
+            "type": "left",
+            "table": "timelog_records",
+            "on": "users.id = timelog_records.user_id"
+          },
+          {
+            "type": "left",
+            "table": "task_hours",
+            "on": "users.id = task_hours.user_id"
+          }
+        ],
+        "select_columns": [
+          "users.id",
+          "users.name",
+          "users.employee_id",
+          "users.status",
+          "attendances.date",
+          "attendances.status",
+          "timelog_records.date",
+          "timelog_records.time_spent",
+          "task_hours.date",
+          "task_hours.hours"
+        ],
+        "computed_columns": [
+          {
+            "name": "present_days",
+            "expression": "SUM(CASE WHEN attendances.status IN ('P', 'Present') THEN 1 ELSE 0 END)",
+            "description": "Count of days marked present."
+          },
+          {
+            "name": "attendance_rate_percent",
+            "expression": "CASE WHEN COUNT(attendances.id) > 0 THEN (SUM(CASE WHEN attendances.status IN ('P', 'Present') THEN 1 ELSE 0 END) / COUNT(attendances.id)) * 100 ELSE NULL END",
+            "description": "Present days divided by tracked attendance days."
+          },
+          {
+            "name": "logged_time_seconds",
+            "expression": "SUM(TIME_TO_SEC(timelog_records.time_spent))",
+            "description": "Total logged timesheet time in seconds."
+          },
+          {
+            "name": "task_hours_total",
+            "expression": "SUM(task_hours.hours)",
+            "description": "Total task hours from task_hours."
+          }
+        ]
+      }
+    }
+  }
+}
